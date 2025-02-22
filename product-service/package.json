@@ -8,9 +8,11 @@
     "build": "tsc",
     "watch": "tsc -w",
     "test": "jest",
-    "cdk": "cdk"
+    "cdk": "cdk",
+    "deploy": "npm run build && cdk deploy"
   },
   "devDependencies": {
+    "@types/aws-lambda": "^8.10.147",
     "@types/jest": "^29.5.14",
     "@types/node": "22.7.9",
     "aws-cdk": "2.178.2",
