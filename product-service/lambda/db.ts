@@ -1,4 +1,10 @@
-export const products = [
-  { id: "1", name: "Harry Potter", price: 19 },
-  { id: "2", name: "Sherlock Holmes", price: 63 },
+export interface Product {
+  id: string;
+  name: string;
+  price: number;
+}
+
+export const products: Product[] = [
+  { id: "1", name: "Product 1", price: 100 },
+  { id: "2", name: "Product 2", price: 200 },
 ];
