@@ -8,6 +8,8 @@ const docClient = DynamoDBDocumentClient.from(client);
 export const handler = async (
   event: APIGatewayProxyEvent
 ): Promise<APIGatewayProxyResult> => {
+  console.log("Request:", event);
+
   try {
     const productsCommand = new ScanCommand({ TableName: "products" });
     const productsResult = await docClient.send(productsCommand);
