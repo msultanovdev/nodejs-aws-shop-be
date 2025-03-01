@@ -9,28 +9,34 @@ const client = new DynamoDBClient({
 });
 const docClient = DynamoDBDocumentClient.from(client);
 
-const products = [
-  { title: "Product 1", description: "Description 1", price: 100 },
-  { title: "Product 2", description: "Description 2", price: 200 },
-];
+const getRandomStock = () => Math.floor(Math.random() * 100) + 1;
+const getRandomPrice = () => Math.floor(Math.random() * 500) + 50;
 
-const stocks = [{ count: 10 }, { count: 5 }];
+const generateProducts = (count: number) => {
+  return Array.from({ length: count }, (_, i) => ({
+    title: `Product ${i + 1}`,
+    description: `Description ${i + 1}`,
+    price: getRandomPrice(),
+  }));
+};
 
 const populateDB = async () => {
-  for (let i = 0; i < products.length; i++) {
+  const products = generateProducts(10);
+
+  for (const product of products) {
     const id = uuidv4();
 
     await docClient.send(
       new PutCommand({
         TableName: "products",
-        Item: { id, ...products[i] },
+        Item: { id, ...product },
       })
     );
 
     await docClient.send(
       new PutCommand({
         TableName: "stocks",
-        Item: { product_id: id, ...stocks[i] },
+        Item: { product_id: id, count: getRandomStock() },
       })
     );
   }

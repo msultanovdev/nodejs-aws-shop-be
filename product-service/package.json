@@ -9,7 +9,8 @@
     "watch": "tsc -w",
     "test": "jest",
     "cdk": "cdk",
-    "deploy": "npm run build && cdk deploy"
+    "deploy": "npm run build && cdk deploy",
+    "insert": "cd ./seed && npx ts-node seed"
   },
   "devDependencies": {
     "@types/aws-lambda": "^8.10.147",
