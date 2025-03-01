@@ -24,6 +24,35 @@
             }
           }
         }
+      },
+      "post": {
+        "summary": "Create a new product",
+        "operationId": "createProduct",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProductInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Product created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Product"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input"
+          }
+        }
       }
     },
     "/products/{productId}": {
@@ -79,8 +108,34 @@
           "price": {
             "type": "number",
             "example": 100
+          },
+          "count": {
+            "type": "number",
+            "example": 10
           }
         }
+      },
+      "ProductInput": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "example": "New Product"
+          },
+          "description": {
+            "type": "string",
+            "example": "New Product description"
+          },
+          "price": {
+            "type": "number",
+            "example": 50
+          },
+          "count": {
+            "type": "number",
+            "example": 10
+          }
+        },
+        "required": ["title", "description", "price"]
       }
     }
   }

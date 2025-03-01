@@ -43,5 +43,17 @@ export class ProductServiceStack extends cdk.Stack {
       "GET",
       new apigateway.LambdaIntegration(getProductById)
     );
+
+    const createProduct = new lambda.Function(this, "createProduct", {
+      runtime: lambda.Runtime.NODEJS_20_X,
+      handler: "createProduct.handler",
+      code: lambda.Code.fromAsset("lambda"),
+      functionName: "createProduct",
+    });
+
+    productsResource.addMethod(
+      "POST",
+      new apigateway.LambdaIntegration(createProduct)
+    );
   }
 }
