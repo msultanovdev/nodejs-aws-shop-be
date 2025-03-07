@@ -1,28 +1,78 @@
 import * as cdk from "aws-cdk-lib";
+import * as lambda from "aws-cdk-lib/aws-lambda";
+import * as apigateway from "aws-cdk-lib/aws-apigateway";
+import * as iam from "aws-cdk-lib/aws-iam";
 import * as s3 from "aws-cdk-lib/aws-s3";
-import * as s3deploy from "aws-cdk-lib/aws-s3-deployment";
+import * as s3n from "aws-cdk-lib/aws-s3-notifications";
 import { Construct } from "constructs";
+import "dotenv/config";
 // import * as sqs from 'aws-cdk-lib/aws-sqs';
 
 export class ImportServiceStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
+    const bucketName = process.env.BUCKET_NAME || "my-aws-uploaded-bucket";
 
-    const bucket = new s3.Bucket(this, "MyUploadBucketMs", {
-      bucketName: "my-upload-bucket-ms",
-      removalPolicy: cdk.RemovalPolicy.DESTROY,
-      autoDeleteObjects: true,
-      blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
+    const importProductsFileLambda = new lambda.Function(
+      this,
+      "ImportProductsFileLambda",
+      {
+        runtime: lambda.Runtime.NODEJS_18_X,
+        handler: "index.handler",
+        code: lambda.Code.fromAsset("lambda"),
+        environment: {
+          BUCKET_NAME: bucketName,
+        },
+      }
+    );
+
+    importProductsFileLambda.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ["s3:PutObject"],
+        resources: [`arn:aws:s3:::${bucketName}/uploaded/*`],
+      })
+    );
+
+    const importFileParserLambda = new lambda.Function(
+      this,
+      "ImportFileParserLambda",
+      {
+        runtime: lambda.Runtime.NODEJS_18_X,
+        handler: "parser.handler",
+        code: lambda.Code.fromAsset("lambda"),
+        environment: {
+          BUCKET_NAME: bucketName,
+        },
+      }
+    );
+
+    importFileParserLambda.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ["s3:GetObject"],
+        resources: [`arn:aws:s3:::${bucketName}/uploaded/*`],
+      })
+    );
+
+    const importBucket = s3.Bucket.fromBucketName(
+      this,
+      "ImportBucket",
+      bucketName
+    );
+
+    importBucket.addEventNotification(
+      s3.EventType.OBJECT_CREATED,
+      new s3n.LambdaDestination(importFileParserLambda),
+      { prefix: "uploaded/" }
+    );
+
+    const api = new apigateway.RestApi(this, "ImportApi", {
+      restApiName: "Import Service",
     });
 
-    new s3deploy.BucketDeployment(this, "UploadFolder", {
-      destinationBucket: bucket,
-      destinationKeyPrefix: "uploaded",
-      sources: [s3deploy.Source.asset("./empty-folder")],
-    });
-
-    new cdk.CfnOutput(this, "BucketName", {
-      value: bucket.bucketName,
-    });
+    const importResource = api.root.addResource("import");
+    importResource.addMethod(
+      "GET",
+      new apigateway.LambdaIntegration(importProductsFileLambda)
+    );
   }
 }
