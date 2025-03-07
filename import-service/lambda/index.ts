@@ -1,6 +1,7 @@
-import { S3 } from "aws-sdk";
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
-const s3 = new S3();
+const s3 = new S3Client({});
 const BUCKET_NAME = process.env.BUCKET_NAME || "my-aws-uploaded-bucket";
 
 exports.handler = async (event: any) => {
@@ -9,23 +10,28 @@ exports.handler = async (event: any) => {
   if (!fileName) {
     return {
       statusCode: 400,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "OPTIONS, GET",
+      },
       body: JSON.stringify({ message: "File name is required" }),
     };
   }
 
-  const params = {
+  const command = new PutObjectCommand({
     Bucket: BUCKET_NAME,
     Key: `uploaded/${fileName}`,
-    Expires: 60,
     ContentType: "text/csv",
-  };
+  });
 
   try {
-    const signedUrl = await s3.getSignedUrlPromise("putObject", params);
+    const signedUrl = await getSignedUrl(s3, command, { expiresIn: 60 });
 
     return {
       statusCode: 200,
       headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "OPTIONS, GET",
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ url: signedUrl }),
@@ -33,6 +39,10 @@ exports.handler = async (event: any) => {
   } catch (error) {
     return {
       statusCode: 500,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "OPTIONS, GET",
+      },
       body: JSON.stringify({ message: "Error generating URL", error }),
     };
   }

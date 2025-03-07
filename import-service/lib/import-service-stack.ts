@@ -28,7 +28,7 @@ export class ImportServiceStack extends cdk.Stack {
 
     importProductsFileLambda.addToRolePolicy(
       new iam.PolicyStatement({
-        actions: ["s3:PutObject"],
+        actions: ["s3:PutObject", "s3:GetObject"],
         resources: [`arn:aws:s3:::${bucketName}/uploaded/*`],
       })
     );
@@ -48,8 +48,11 @@ export class ImportServiceStack extends cdk.Stack {
 
     importFileParserLambda.addToRolePolicy(
       new iam.PolicyStatement({
-        actions: ["s3:GetObject"],
-        resources: [`arn:aws:s3:::${bucketName}/uploaded/*`],
+        actions: ["s3:GetObject", "s3:ListBucket"],
+        resources: [
+          `arn:aws:s3:::${bucketName}`,
+          `arn:aws:s3:::${bucketName}/uploaded/*`,
+        ],
       })
     );
 
@@ -67,6 +70,11 @@ export class ImportServiceStack extends cdk.Stack {
 
     const api = new apigateway.RestApi(this, "ImportApi", {
       restApiName: "Import Service",
+      defaultCorsPreflightOptions: {
+        allowOrigins: apigateway.Cors.ALL_ORIGINS,
+        allowMethods: apigateway.Cors.ALL_METHODS,
+        allowHeaders: ["Content-Type", "Authorization"],
+      },
     });
 
     const importResource = api.root.addResource("import");
