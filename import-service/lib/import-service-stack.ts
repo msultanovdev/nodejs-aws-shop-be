@@ -51,10 +51,16 @@ export class ImportServiceStack extends cdk.Stack {
 
     importFileParserLambda.addToRolePolicy(
       new iam.PolicyStatement({
-        actions: ["s3:GetObject", "s3:ListBucket"],
+        actions: [
+          "s3:GetObject",
+          "s3:ListBucket",
+          "s3:CopyObject",
+          "s3:DeleteObject",
+        ],
         resources: [
           `arn:aws:s3:::${bucketName}`,
           `arn:aws:s3:::${bucketName}/uploaded/*`,
+          `arn:aws:s3:::${bucketName}/parsed/*`,
         ],
       })
     );

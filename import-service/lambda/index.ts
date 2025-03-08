@@ -4,7 +4,7 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 const s3 = new S3Client({});
 const BUCKET_NAME = process.env.BUCKET_NAME || "my-aws-uploaded-bucket";
 
-exports.handler = async (event: any) => {
+export const handler = async (event: any) => {
   const fileName = event.queryStringParameters?.name;
 
   if (!fileName) {
@@ -15,6 +15,18 @@ exports.handler = async (event: any) => {
         "Access-Control-Allow-Methods": "OPTIONS, GET",
       },
       body: JSON.stringify({ message: "File name is required" }),
+    };
+  }
+
+  if (!fileName.toLowerCase().endsWith(".csv")) {
+    return {
+      statusCode: 400,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Credentials": true,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ message: "Only CSV files are allowed" }),
     };
   }
 
