@@ -17,7 +17,7 @@ export class ImportServiceStack extends cdk.Stack {
       this,
       "ImportProductsFileLambda",
       {
-        runtime: lambda.Runtime.NODEJS_18_X,
+        runtime: lambda.Runtime.NODEJS_20_X,
         handler: "index.handler",
         code: lambda.Code.fromAsset("lambda"),
         environment: {
@@ -28,8 +28,11 @@ export class ImportServiceStack extends cdk.Stack {
 
     importProductsFileLambda.addToRolePolicy(
       new iam.PolicyStatement({
-        actions: ["s3:PutObject", "s3:GetObject"],
-        resources: [`arn:aws:s3:::${bucketName}/uploaded/*`],
+        actions: ["s3:PutObject", "s3:GetObject", "s3:ListBucket"],
+        resources: [
+          `arn:aws:s3:::${bucketName}`,
+          `arn:aws:s3:::${bucketName}/*`,
+        ],
       })
     );
 
@@ -37,7 +40,7 @@ export class ImportServiceStack extends cdk.Stack {
       this,
       "ImportFileParserLambda",
       {
-        runtime: lambda.Runtime.NODEJS_18_X,
+        runtime: lambda.Runtime.NODEJS_20_X,
         handler: "parser.handler",
         code: lambda.Code.fromAsset("lambda"),
         environment: {
