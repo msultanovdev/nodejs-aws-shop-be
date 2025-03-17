@@ -3,11 +3,21 @@ import { Construct } from "constructs";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as apigateway from "aws-cdk-lib/aws-apigateway";
 import * as sqs from "aws-cdk-lib/aws-sqs";
+import * as sns from "aws-cdk-lib/aws-sns";
+import * as subscriptions from "aws-cdk-lib/aws-sns-subscriptions";
 import * as lambdaEventSources from "aws-cdk-lib/aws-lambda-event-sources";
 
 export class ProductServiceStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
+
+    const createProductTopic = new sns.Topic(this, "CreateProductTopic", {
+      topicName: "createProductTopic",
+    });
+
+    createProductTopic.addSubscription(
+      new subscriptions.EmailSubscription("your-email@example.com")
+    );
 
     const catalogItemsQueue = new sqs.Queue(this, "CatalogItemsQueue", {
       queueName: "catalogItemsQueue",
@@ -27,6 +37,7 @@ export class ProductServiceStack extends cdk.Stack {
         environment: {
           PRODUCTS_TABLE_NAME: "products",
           STOCKS_TABLE_NAME: "stocks",
+          CREATE_PRODUCT_TOPIC_ARN: createProductTopic.topicArn,
         },
       }
     );
@@ -34,6 +45,14 @@ export class ProductServiceStack extends cdk.Stack {
     catalogBatchProcess.addEventSource(
       new lambdaEventSources.SqsEventSource(catalogItemsQueue, {
         batchSize: 5,
+      })
+    );
+
+    catalogBatchProcess.addToRolePolicy(
+      new cdk.aws_iam.PolicyStatement({
+        effect: cdk.aws_iam.Effect.ALLOW,
+        actions: ["sns:Publish"],
+        resources: [createProductTopic.topicArn],
       })
     );
 

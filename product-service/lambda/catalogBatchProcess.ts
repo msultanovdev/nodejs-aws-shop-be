@@ -4,13 +4,16 @@ import {
   DynamoDBDocumentClient,
   TransactWriteCommand,
 } from "@aws-sdk/lib-dynamodb";
+import { SNSClient, PublishCommand } from "@aws-sdk/client-sns";
 import { v4 as uuidv4 } from "uuid";
 
 const dynamoDB = new DynamoDBClient({});
 const docClient = DynamoDBDocumentClient.from(dynamoDB);
+const sns = new SNSClient({});
 
 const PRODUCTS_TABLE = process.env.PRODUCTS_TABLE_NAME || "products";
 const STOCKS_TABLE = process.env.STOCKS_TABLE_NAME || "stocks";
+const CREATE_PRODUCT_TOPIC_ARN = process.env.CREATE_PRODUCT_TOPIC_ARN;
 
 interface ProductInput {
   title: string;
@@ -86,6 +89,22 @@ export const handler: SQSHandler = async (event: SQSEvent): Promise<void> => {
 
         await docClient.send(transactCommand);
         console.log("Successfully created product:", newProduct);
+
+        try {
+          const publishCommand = new PublishCommand({
+            TopicArn: CREATE_PRODUCT_TOPIC_ARN,
+            Message: JSON.stringify({
+              subject: "New Product Created",
+              message: `Product "${newProduct.title}" has been created with ID: ${newProduct.id}`,
+              product: newProduct,
+            }),
+          });
+
+          await sns.send(publishCommand);
+          console.log("Successfully sent SNS notification");
+        } catch (error) {
+          console.error("Error sending SNS notification:", error);
+        }
       } catch (error) {
         console.error("Error processing record:", record.body, error);
         continue;
