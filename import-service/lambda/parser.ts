@@ -4,6 +4,7 @@ import {
   CopyObjectCommand,
   DeleteObjectCommand,
 } from "@aws-sdk/client-s3";
+import { SQSClient, SendMessageCommand } from "@aws-sdk/client-sqs";
 import * as csv from "csv-parser";
 
 interface IProduct {
@@ -14,6 +15,7 @@ interface IProduct {
 }
 
 const s3 = new S3Client({});
+const sqs = new SQSClient({});
 
 export const handler = async (event: any) => {
   try {
@@ -33,25 +35,37 @@ export const handler = async (event: any) => {
       const { Body } = await s3.send(getObjectCommand);
       const s3Stream = Body as NodeJS.ReadableStream;
 
-      const result: IProduct[] = [];
-
       await new Promise<void>((resolve, reject) => {
         s3Stream
           .pipe(csv())
-          .on("data", (data: IProduct) => {
-            result.push({
+          .on("data", async (data: IProduct) => {
+            const product = {
               name: data.name,
               description: data.description,
               price: Number(data.price),
               count: Number(data.count),
-            });
+            };
+
+            try {
+              const messageBody = JSON.stringify({
+                title: product.name,
+                description: product.description,
+                price: product.price,
+                count: product.count,
+              });
+
+              const sendMessageCommand = new SendMessageCommand({
+                QueueUrl: `https://sqs.${process.env.AWS_REGION}.amazonaws.com/${process.env.AWS_ACCOUNT_ID}/catalogItemsQueue`,
+                MessageBody: messageBody,
+              });
+
+              await sqs.send(sendMessageCommand);
+            } catch (error) {
+              console.error("Error sending message to SQS:", error);
+            }
           })
           .on("end", resolve)
           .on("error", reject);
-      });
-
-      result.forEach((res) => {
-        console.log("Parsed Record:", res);
       });
 
       console.log("CSV file processing completed.");
