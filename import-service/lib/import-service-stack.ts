@@ -57,7 +57,6 @@ export class ImportServiceStack extends cdk.Stack {
       }
     );
 
-    // Add S3 permissions
     importFileParserLambda.addToRolePolicy(
       new iam.PolicyStatement({
         actions: [

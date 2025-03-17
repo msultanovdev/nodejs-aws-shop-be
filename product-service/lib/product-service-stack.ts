@@ -15,8 +15,9 @@ export class ProductServiceStack extends cdk.Stack {
       topicName: "createProductTopic",
     });
 
+
     createProductTopic.addSubscription(
-      new subscriptions.EmailSubscription("your-email@example.com")
+      new subscriptions.EmailSubscription("mukhammadamin.sultanov@gmail.com")
     );
 
     const catalogItemsQueue = new sqs.Queue(this, "CatalogItemsQueue", {
