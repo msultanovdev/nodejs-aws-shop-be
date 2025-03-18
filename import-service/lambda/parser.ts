@@ -16,6 +16,7 @@ interface IProduct {
 
 const s3 = new S3Client({});
 const sqs = new SQSClient({});
+const SQS_URL = process.env.SQS_URL;
 
 export const handler = async (event: any) => {
   try {
@@ -55,11 +56,12 @@ export const handler = async (event: any) => {
               });
 
               const sendMessageCommand = new SendMessageCommand({
-                QueueUrl: `https://sqs.${process.env.AWS_REGION}.amazonaws.com/${process.env.AWS_ACCOUNT_ID}/catalogItemsQueue`,
+                QueueUrl: SQS_URL,
                 MessageBody: messageBody,
               });
 
               await sqs.send(sendMessageCommand);
+              console.log("Message sent to SQS:", messageBody);
             } catch (error) {
               console.error("Error sending message to SQS:", error);
             }

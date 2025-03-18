@@ -51,8 +51,7 @@ export class ImportServiceStack extends cdk.Stack {
         code: lambda.Code.fromAsset("lambda"),
         environment: {
           BUCKET_NAME: bucketName,
-          AWS_REGION: this.region,
-          AWS_ACCOUNT_ID: this.account,
+          SQS_URL: process.env.SQS_URL || `https://sqs.${this.region}.amazonaws.com/${this.account}/catalogItemsQueue`,
         },
       }
     );

@@ -7,10 +7,6 @@ import {
 import { SNSClient, PublishCommand } from "@aws-sdk/client-sns";
 import { v4 as uuidv4 } from "uuid";
 
-const dynamoDB = new DynamoDBClient({});
-const docClient = DynamoDBDocumentClient.from(dynamoDB);
-const sns = new SNSClient({});
-
 const PRODUCTS_TABLE = process.env.PRODUCTS_TABLE_NAME || "products";
 const STOCKS_TABLE = process.env.STOCKS_TABLE_NAME || "stocks";
 const CREATE_PRODUCT_TOPIC_ARN = process.env.CREATE_PRODUCT_TOPIC_ARN;
@@ -32,6 +28,10 @@ interface Product {
 
 export const handler: SQSHandler = async (event: SQSEvent): Promise<void> => {
   console.log("Received SQS event:", event);
+
+  const dynamoDB = new DynamoDBClient({});
+  const docClient = DynamoDBDocumentClient.from(dynamoDB);
+  const sns = new SNSClient({});
 
   try {
     for (const record of event.Records) {
