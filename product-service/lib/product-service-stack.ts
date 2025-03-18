@@ -15,9 +15,24 @@ export class ProductServiceStack extends cdk.Stack {
       topicName: "createProductTopic",
     });
 
+    createProductTopic.addSubscription(
+      new subscriptions.EmailSubscription("mukhammadamin.sultanov@gmail.com", {
+        filterPolicy: {
+          price: sns.SubscriptionFilter.numericFilter({
+            greaterThan: 100,
+          }),
+        },
+      })
+    );
 
     createProductTopic.addSubscription(
-      new subscriptions.EmailSubscription("mukhammadamin.sultanov@gmail.com")
+      new subscriptions.EmailSubscription("s.mukhammadamin@gmail.com", {
+        filterPolicy: {
+          price: sns.SubscriptionFilter.numericFilter({
+            lessThanOrEqualTo: 100,
+          }),
+        },
+      })
     );
 
     const catalogItemsQueue = new sqs.Queue(this, "CatalogItemsQueue", {
