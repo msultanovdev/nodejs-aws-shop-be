@@ -10,6 +10,7 @@ import { v4 as uuidv4 } from "uuid";
 const PRODUCTS_TABLE = process.env.PRODUCTS_TABLE_NAME || "products";
 const STOCKS_TABLE = process.env.STOCKS_TABLE_NAME || "stocks";
 const CREATE_PRODUCT_TOPIC_ARN = process.env.CREATE_PRODUCT_TOPIC_ARN;
+const AWS_REGION = process.env.AWS_REGION || "us-east-1";
 
 interface ProductInput {
   title: string;
@@ -29,9 +30,9 @@ interface Product {
 export const handler: SQSHandler = async (event: SQSEvent): Promise<void> => {
   console.log("Received SQS event:", event);
 
-  const dynamoDB = new DynamoDBClient({});
+  const dynamoDB = new DynamoDBClient({ region: AWS_REGION });
   const docClient = DynamoDBDocumentClient.from(dynamoDB);
-  const sns = new SNSClient({});
+  const sns = new SNSClient({ region: AWS_REGION });
 
   const failedRecords: any[] = [];
 
