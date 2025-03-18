@@ -36,10 +36,12 @@ export const handler = async (event: any) => {
       const { Body } = await s3.send(getObjectCommand);
       const s3Stream = Body as NodeJS.ReadableStream;
 
+      const messages: any[] = [];
+      
       await new Promise<void>((resolve, reject) => {
         s3Stream
           .pipe(csv())
-          .on("data", async (data: IProduct) => {
+          .on("data", (data: IProduct) => {
             const product = {
               name: data.name,
               description: data.description,
@@ -47,30 +49,35 @@ export const handler = async (event: any) => {
               count: Number(data.count),
             };
 
-            try {
-              const messageBody = JSON.stringify({
-                title: product.name,
-                description: product.description,
-                price: product.price,
-                count: product.count,
-              });
-
-              const sendMessageCommand = new SendMessageCommand({
-                QueueUrl: SQS_URL,
-                MessageBody: messageBody,
-              });
-
-              await sqs.send(sendMessageCommand);
-              console.log("Message sent to SQS:", messageBody);
-            } catch (error) {
-              console.error("Error sending message to SQS:", error);
-            }
+            messages.push({
+              title: product.name,
+              description: product.description,
+              price: product.price,
+              count: product.count,
+            });
           })
           .on("end", resolve)
           .on("error", reject);
       });
 
-      console.log("CSV file processing completed.");
+      console.log(`Found ${messages.length} products to process`);
+
+      const batchSize = 5;
+      for (let i = 0; i < messages.length; i += batchSize) {
+        const batch = messages.slice(i, i + batchSize);
+        const sendPromises = batch.map(message => {
+          const sendMessageCommand = new SendMessageCommand({
+            QueueUrl: SQS_URL,
+            MessageBody: JSON.stringify(message),
+          });
+          return sqs.send(sendMessageCommand);
+        });
+
+        await Promise.all(sendPromises);
+        console.log(`Sent batch ${i / batchSize + 1} of ${Math.ceil(messages.length / batchSize)}`);
+      }
+
+      console.log("All messages sent to SQS successfully");
 
       const newKey = `parsed/${objectKey.split("/")[1]}`;
 
@@ -93,5 +100,6 @@ export const handler = async (event: any) => {
     }
   } catch (error) {
     console.error("Error handling S3 event:", error);
+    throw error;
   }
 };

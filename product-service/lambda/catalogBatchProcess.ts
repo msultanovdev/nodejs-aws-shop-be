@@ -33,6 +33,8 @@ export const handler: SQSHandler = async (event: SQSEvent): Promise<void> => {
   const docClient = DynamoDBDocumentClient.from(dynamoDB);
   const sns = new SNSClient({});
 
+  const failedRecords: any[] = [];
+
   try {
     for (const record of event.Records) {
       try {
@@ -49,6 +51,11 @@ export const handler: SQSHandler = async (event: SQSEvent): Promise<void> => {
           price < 0
         ) {
           console.error("Invalid product data:", body);
+          failedRecords.push({
+            recordId: record.messageId,
+            reason: "Invalid product data",
+            data: body,
+          });
           continue;
         }
 
@@ -98,6 +105,12 @@ export const handler: SQSHandler = async (event: SQSEvent): Promise<void> => {
               message: `Product "${newProduct.title}" has been created with ID: ${newProduct.id}`,
               product: newProduct,
             }),
+            MessageAttributes: {
+              price: {
+                DataType: "Number",
+                StringValue: newProduct.price.toString(),
+              },
+            },
           });
 
           await sns.send(publishCommand);
@@ -105,10 +118,20 @@ export const handler: SQSHandler = async (event: SQSEvent): Promise<void> => {
         } catch (error) {
           console.error("Error sending SNS notification:", error);
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error processing record:", record.body, error);
-        continue;
+        failedRecords.push({
+          recordId: record.messageId,
+          reason: "Processing error",
+          error: error.message,
+          data: record.body,
+        });
       }
+    }
+
+    if (failedRecords.length > 0) {
+      console.error("Failed to process records:", failedRecords);
+      throw new Error(`Failed to process ${failedRecords.length} records`);
     }
   } catch (error) {
     console.error("Error processing catalog batch:", error);
