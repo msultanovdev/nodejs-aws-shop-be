@@ -4,29 +4,63 @@ export const basicAuthorizer = async (event: APIGatewayTokenAuthorizerEvent): Pr
   console.log('Event:', JSON.stringify(event));
 
   if (event.type !== 'TOKEN') {
-    return generatePolicy('user', 'Deny' as StatementEffect, event.methodArn);
+    console.log('Invalid event type:', event.type);
+    return generatePolicy('user', 'Deny' as StatementEffect, event.methodArn, 'Invalid event type');
   }
 
   try {
     const authorizationToken = event.authorizationToken;
+    console.log('Authorization token:', authorizationToken);
+
+    if (!authorizationToken) {
+      console.log('Authorization header is missing');
+      return generatePolicy('user', 'Deny' as StatementEffect, event.methodArn, 'Authorization header is missing');
+    }
+
+    if (!authorizationToken.startsWith('Basic ')) {
+      console.log('Invalid authorization token format. Expected "Basic" prefix');
+      return generatePolicy('user', 'Deny' as StatementEffect, event.methodArn, 'Invalid authorization format');
+    }
+
     const encodedCreds = authorizationToken.split(' ')[1];
     const buff = Buffer.from(encodedCreds, 'base64');
     const plainCreds = buff.toString('utf-8').split(':');
+    
+    if (plainCreds.length !== 2) {
+      console.log('Invalid credentials format. Expected username:password');
+      return generatePolicy('user', 'Deny' as StatementEffect, event.methodArn, 'Invalid credentials format');
+    }
+
     const username = plainCreds[0];
     const password = plainCreds[1];
+    console.log('Decoded credentials - Username:', username);
 
     const storedPassword = process.env[username];
-    const effect = !storedPassword || storedPassword !== password ? 'Deny' as StatementEffect : 'Allow' as StatementEffect;
+    if (!storedPassword) {
+      console.log('Username not found in environment variables');
+      return generatePolicy(username, 'Deny' as StatementEffect, event.methodArn, 'Invalid credentials');
+    }
 
-    return generatePolicy(username, effect, event.methodArn);
+    const effect = storedPassword !== password ? 'Deny' as StatementEffect : 'Allow' as StatementEffect;
+    console.log('Authorization result:', effect);
+
+    return generatePolicy(username, effect, event.methodArn, effect === 'Allow' ? undefined : 'Invalid credentials');
   } catch (error) {
-    console.error('Error:', error);
-    return generatePolicy('user', 'Deny' as StatementEffect, event.methodArn);
+    console.error('Error processing authorization:', error);
+    return generatePolicy('user', 'Deny' as StatementEffect, event.methodArn, 'Error processing authorization');
   }
 };
 
-const generatePolicy = (principalId: string, effect: StatementEffect, resource: string): APIGatewayAuthorizerResult => {
-  return {
+const generatePolicy = (
+  principalId: string, 
+  effect: StatementEffect, 
+  resource: string,
+  message?: string
+): APIGatewayAuthorizerResult => {
+  const methodArn = resource;
+  console.log('Generating policy for method:', methodArn);
+
+  const response: APIGatewayAuthorizerResult = {
     principalId,
     policyDocument: {
       Version: '2012-10-17',
@@ -34,9 +68,27 @@ const generatePolicy = (principalId: string, effect: StatementEffect, resource: 
         {
           Action: 'execute-api:Invoke',
           Effect: effect,
-          Resource: resource,
+          Resource: methodArn,
         },
       ],
     },
   };
+
+  if (message) {
+    response.context = {
+      message,
+      statusCode: message === 'Authorization header is missing' ? '401' : '403'
+    };
+  }
+
+  if (effect === 'Allow') {
+    response.context = {
+      ...response.context,
+      authorized: true,
+      principalId,
+      methodArn
+    };
+  }
+
+  return response;
 }; 
