@@ -4,14 +4,20 @@ import * as apigateway from "aws-cdk-lib/aws-apigateway";
 import * as iam from "aws-cdk-lib/aws-iam";
 import * as s3 from "aws-cdk-lib/aws-s3";
 import * as s3n from "aws-cdk-lib/aws-s3-notifications";
+import * as sqs from "aws-cdk-lib/aws-sqs";
 import { Construct } from "constructs";
 import "dotenv/config";
-// import * as sqs from 'aws-cdk-lib/aws-sqs';
 
 export class ImportServiceStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
     const bucketName = process.env.BUCKET_NAME || "my-aws-uploaded-bucket";
+
+    const catalogItemsQueue = sqs.Queue.fromQueueArn(
+      this,
+      "CatalogItemsQueue",
+      `arn:aws:sqs:${this.region}:${this.account}:catalogItemsQueue`
+    );
 
     const importProductsFileLambda = new lambda.Function(
       this,
@@ -45,6 +51,7 @@ export class ImportServiceStack extends cdk.Stack {
         code: lambda.Code.fromAsset("lambda"),
         environment: {
           BUCKET_NAME: bucketName,
+          SQS_URL: process.env.SQS_URL || `https://sqs.${this.region}.amazonaws.com/${this.account}/catalogItemsQueue`,
         },
       }
     );
@@ -62,6 +69,12 @@ export class ImportServiceStack extends cdk.Stack {
           `arn:aws:s3:::${bucketName}/uploaded/*`,
           `arn:aws:s3:::${bucketName}/parsed/*`,
         ],
+      })
+    );
+    importFileParserLambda.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ["sqs:SendMessage"],
+        resources: [catalogItemsQueue.queueArn],
       })
     );
 

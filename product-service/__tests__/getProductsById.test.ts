@@ -5,7 +5,7 @@ describe("getProductsById", () => {
   it("should return product if found", async () => {
     const mockEvent = {
       pathParameters: {
-        productId: "15f61b93-894e-4022-ae52-fbd0dfd79be0",
+        productId: "956ab963-4045-485c-9daf-4a2ca1495824",
       },
     } as unknown as APIGatewayProxyEvent;
 
@@ -13,8 +13,8 @@ describe("getProductsById", () => {
 
     expect(result.statusCode).toBe(200);
     const body = JSON.parse(result.body);
-    expect(body).toHaveProperty("id", "15f61b93-894e-4022-ae52-fbd0dfd79be0");
-    expect(body).toHaveProperty("title", "Product 1");
+    expect(body).toHaveProperty("id", "956ab963-4045-485c-9daf-4a2ca1495824");
+    expect(body).toHaveProperty("title", "TEST 1");
   });
 
   it("should return 404 if product not found", async () => {
