@@ -99,10 +99,24 @@ export class ImportServiceStack extends cdk.Stack {
       },
     });
 
+    const basicAuthorizerLambda = lambda.Function.fromFunctionArn(
+      this,
+      "BasicAuthorizerLambda",
+      `arn:aws:lambda:${this.region}:${this.account}:function:BasicAuthorizerFunction`
+    );
+
+    const authorizer = new apigateway.TokenAuthorizer(this, "BasicAuthorizer", {
+      handler: basicAuthorizerLambda,
+      identitySource: apigateway.IdentitySource.header("Authorization"),
+    });
+
     const importResource = api.root.addResource("import");
     importResource.addMethod(
       "GET",
-      new apigateway.LambdaIntegration(importProductsFileLambda)
+      new apigateway.LambdaIntegration(importProductsFileLambda),
+      {
+        authorizer,
+      }
     );
   }
 }
