@@ -1,0 +1,12 @@
+.git
+.gitignore
+node_modules
+npm-debug.log
+.env
+.env.*
+*.md
+.vscode
+.idea
+__tests__
+*.test.ts
+*.spec.ts 
