@@ -1,0 +1,22 @@
+{
+  "name": "bff-service",
+  "version": "1.0.0",
+  "description": "Backend for Frontend Service",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "ts-node-dev --respawn src/index.ts",
+    "test": "jest"
+  },
+  "dependencies": {
+    "axios": "^1.6.7",
+    "dotenv": "^16.4.5",
+    "fastify": "^4.26.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.30",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.3.3"
+  }
+}
